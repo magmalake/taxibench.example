@@ -11,6 +11,14 @@ the numbers.
 
 ## [Unreleased]
 
+### Changed
+- **Re-measured against iceberg-mojo 0.7.1.** The two stacks are now level —
+  1.06x on one thread and 1.01x on ten, from 0.70x and 0.86x at 0.6.7 — so the
+  README no longer organises itself around a single explanation for the split.
+  What remains is per-query: partition-filtered queries win 2.0x–2.3x, the
+  single-file wide scan 1.5x–1.7x, and q1 and q8 lose at 0.63x–0.75x, where the
+  cost is Parquet decode rather than anything in the Iceberg layer.
+
 ### Added
 - **The query suite.** Eight queries over 79,478,796 NYC yellow-taxi trips
   (TLC 2023–2024) as an Iceberg v2 table partitioned by
