@@ -2,3 +2,6 @@
 build/
 __pycache__/
 *.pyc
+
+# The delete study is on hold; src/maintain.mojo is a local draft.
+src/maintain.mojo
