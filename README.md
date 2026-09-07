@@ -45,8 +45,8 @@ transliteration of the other's.
 
 ## Results
 
-Apple M4, 10 cores (4 performance), macOS 15, against iceberg-mojo at
-[`6c916cc`](https://github.com/magmalake/iceberg.mojo/commit/6c916cc). Warm
+Apple M4, 10 cores (4 performance), macOS 15, against
+[iceberg-mojo 0.7.0](https://mojoshelf.org/tins/iceberg-mojo). Warm
 cache, **p50 of 5 runs after a discarded warm-up, each query in its own
 process**, machine gated quiet. Times are the whole scan — planning, Parquet
 decode, filtering and the fold — which is what a caller actually waits for.
