@@ -324,7 +324,7 @@ client the bottleneck of its own load.
 
 | | |
 |---|---:|
-| COPY, 24 months, ~15.5 GiB over the wire | **77–84 s** |
+| COPY, 24 months, one stream per partition | **77–84 s** |
 | `ANALYZE trips` | **10–21 s** |
 | building both indexes | **28.5 s** |
 
