@@ -1,0 +1,29 @@
+[workspace]
+authors = ["Marius S <39998+winding-lines@users.noreply.github.com>"]
+channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
+name = "taxibench.example"
+description = "The NYC taxi query suite over Apache Iceberg, run twice — once on iceberg-mojo from mojoshelf, once on PyIceberg — and packaged as two container images."
+platforms = ["osx-arm64", "linux-64", "linux-aarch64"]
+version = "0.1.0"
+# Required for git source dependencies; `pixi shelf add` says so if it is missing.
+preview = ["pixi-build"]
+
+[tasks]
+# The benchmark binary. Everything else here is a wrapper around it.
+build = { cmd = "mkdir -p build && mojo build src/main.mojo -I src -o build/taxibench" }
+# The suite against the local warehouse, both implementations, then a diff of
+# the answers. See scripts/bench.sh.
+bench = { cmd = "bash scripts/bench.sh" }
+# Download the TLC months and have PyIceberg build the table. Needs `uv`.
+load = { cmd = "bash scripts/load.sh" }
+# The answers-must-match gate on its own, over whatever results are in build/.
+verify = { cmd = "python3 scripts/compare.py build/results-mojo.jsonl build/results-python.jsonl" }
+fmt = { cmd = "mojo format src" }
+
+[dependencies]
+mojo = "==1.0.0"
+# Added by `pixi shelf add iceberg-mojo`: the tin comes from GitHub as a pixi
+# source dependency, pinned at the revision mojoshelf published. Its own
+# dependencies — parquet, avro, thrift, zstd, lz4, brotli, objectstore and the
+# rest — come along with it.
+iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "d710e81332440ce6e73ece19108e5d1f696bdfe3" }

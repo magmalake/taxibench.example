@@ -1,0 +1,9 @@
+# The build directory holds the TLC downloads, the warehouse and the pixi
+# environment — several gigabytes that would otherwise be sent to the daemon as
+# build context on every build. The warehouse reaches the container as a mount,
+# never as a layer.
+build/
+.pixi/
+.git/
+*.jsonl
+results/

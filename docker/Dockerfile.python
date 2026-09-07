@@ -1,0 +1,36 @@
+# The PyIceberg image.
+#
+# `pyiceberg[pyarrow]`, not `pyiceberg[sql-sqlite,pyarrow]`: the benchmark opens
+# the table through `StaticTable.from_metadata`, so SQLAlchemy and the catalog
+# drivers are never imported and shipping them would inflate the image for
+# nothing. This is the smallest honest image for the workload — the comparison
+# is against a Python image built as carefully as the Mojo one, not a careless
+# one.
+#
+# Two stages so pip's build machinery and wheel cache stay out of the result;
+# only the installed site-packages tree is copied forward.
+
+FROM python:3.12-slim-bookworm AS build
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN python -m venv /opt/venv
+RUN /opt/venv/bin/pip install --no-cache-dir "pyiceberg[pyarrow]==0.11.1"
+
+# pyarrow ships bundled test suites and headers that nothing here loads.
+RUN find /opt/venv -type d -name '__pycache__' -prune -exec rm -rf {} + \
+    && find /opt/venv -type d -name 'tests' -prune -exec rm -rf {} + \
+    && find /opt/venv -type d -name 'include' -prune -exec rm -rf {} +
+
+
+FROM python:3.12-slim-bookworm
+
+COPY --from=build /opt/venv /opt/venv
+COPY python/taxibench /app/taxibench
+
+ENV PATH=/opt/venv/bin:$PATH
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+
+ENTRYPOINT ["/opt/venv/bin/python", "-m", "taxibench"]
+CMD ["/data"]
