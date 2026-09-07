@@ -166,14 +166,35 @@ different question.
 
 ### Lance results
 
-**Not yet measured.** The implementation is in place and it passes the answer
-gate — all eight answers agree with PyIceberg, exactly on every count and
-within 1e-9 relative on every sum, and the fragment counts line up with the
-file counts at 24, 3, 24, 24, 24, 12, 1, 24. The timings wait on a quiet
-machine, which is the same rule the two tables below were taken under.
-`scripts/bench-lance.sh` produces them: the Lance leg and the PyIceberg leg in
-one session, both told the same thread count, each query in its own process.
+Same machine and same discipline as the tables below.
+`scripts/bench-lance.sh` runs the Lance leg and a PyIceberg leg in one session,
+so the pair is internally consistent.
 
+| | Lance | PyIceberg | | vs iceberg.mojo |
+|---|---:|---:|---:|---|
+| one thread | **1537.3 ms** | 4322.3 ms | 2.81× | Lance **2.06×** faster |
+| ten threads | **1504.5 ms** | 1534.8 ms | 1.02× | iceberg.mojo **1.67×** faster |
+
+All eight answers agree. Two things there deserve more than a glance.
+
+**Lance is the fastest single-threaded engine here by a wide margin**, and on
+the queries that prune it is not close: q2 is 9.1 ms against PyIceberg's 125.5
+and iceberg.mojo's 42.0.
+
+**But it barely scales — 1537 ms to 1504 ms, a 1.02× speedup from ten
+threads.** That is reproducible across both passes rather than one noisy cell,
+and it is why the same engine leads one leg and trails the other. We have not
+chased it down. Either the reader is not spending the thread budget it is
+given, or the shared Python fold — the same code the PyIceberg leg runs —
+becomes the ceiling once the reader stops being the bottleneck, which the
+batch-size finding above makes plausible. Read it as an open question about
+this leg rather than a verdict on Lance's threading.
+
+One measurement note. In the session that produced the threaded numbers, the
+PyIceberg leg's q5 recorded a p50 of 404.5 ms against a p90 of 1207.5 ms. Its
+p50 agrees with the other two sessions, so the leg is sound, but that p90
+records interference — so the table above uses the clean PyIceberg figures from
+the Iceberg session.
 
 ## Results: the two Iceberg readers
 
@@ -182,7 +203,8 @@ so their numbers belong under their own sections rather than in the tables
 below. These two read the same files.
 
 Apple M4, 10 cores (4 performance), macOS 15, against
-[iceberg-mojo 0.7.1](https://mojoshelf.org/tins/iceberg-mojo). Warm cache,
+[iceberg-mojo 0.7.2](https://mojoshelf.org/tins/iceberg-mojo) on
+[parquet-mojo 0.8.0](https://mojoshelf.org/tins/parquet-mojo). Warm cache,
 **p50 of 5 runs after a discarded warm-up, each query in its own process**,
 machine gated quiet. Times are the whole scan — planning, Parquet decode,
 filtering and the fold — which is what a caller actually waits for.
@@ -197,15 +219,15 @@ single-worker Mojo scan compared against pyarrow's default is not a comparison.
 
 | query | files | rows out | iceberg.mojo | PyIceberg | ratio |
 |---|---:|---:|---:|---:|---:|
-| q1_scan_count | 24 | 77,929,134 | 483.8 ms | 306.5 ms | 0.63× |
-| **q2_month_range** | 3 | 10,820,685 | **61.8 ms** | 126.5 ms | **2.05×** |
-| **q3_payment_sum** | 24 | 11,944,903 | **599.9 ms** | 614.4 ms | **1.02×** |
-| q4_tip_ratio | 24 | 6,532,607 | 838.1 ms | 783.2 ms | 0.93× |
-| **q5_top_zones** | 24 | 77,929,134 | **686.8 ms** | 694.2 ms | **1.01×** |
-| **q6_zone_revenue** | 12 | 41,169,300 | **325.1 ms** | 737.2 ms | **2.27×** |
-| **q7_wide** | 1 | 3,539,142 | **170.9 ms** | 253.0 ms | **1.48×** |
-| q8_selective | 24 | 470,349 | 914.0 ms | 796.3 ms | 0.87× |
-| **total** | | | **4080.4 ms** | **4311.3 ms** | **1.06×** |
+| q1_scan_count | 24 | 77,929,134 | 289.3 ms | 296.4 ms | 1.02× |
+| q2_month_range | 3 | 10,820,685 | 42.0 ms | 123.2 ms | 2.94× |
+| q3_payment_sum | 24 | 11,944,903 | 440.4 ms | 606.6 ms | 1.38× |
+| q4_tip_ratio | 24 | 6,532,607 | 684.9 ms | 766.9 ms | 1.12× |
+| q5_top_zones | 24 | 77,929,134 | 527.4 ms | 699.4 ms | 1.33× |
+| q6_zone_revenue | 12 | 41,169,300 | 245.2 ms | 728.8 ms | 2.97× |
+| q7_wide | 1 | 3,539,142 | 166.8 ms | 246.6 ms | 1.48× |
+| q8_selective | 24 | 470,349 | 768.8 ms | 779.5 ms | 1.01× |
+| **total** | | | **3164.8 ms** | **4247.5 ms** | **1.34×** |
 
 ### Ten threads each
 
@@ -213,49 +235,38 @@ single-worker Mojo scan compared against pyarrow's default is not a comparison.
 
 | query | files | rows out | iceberg.mojo | PyIceberg | ratio |
 |---|---:|---:|---:|---:|---:|
-| q1_scan_count | 24 | 77,929,134 | 183.1 ms | 121.6 ms | 0.66× |
-| q2_month_range | 3 | 10,820,685 | 38.2 ms | 37.3 ms | 0.98× |
-| q3_payment_sum | 24 | 11,944,903 | 207.4 ms | 153.6 ms | 0.74× |
-| q4_tip_ratio | 24 | 6,532,607 | 274.9 ms | 205.9 ms | 0.75× |
-| **q5_top_zones** | 24 | 77,929,134 | **318.8 ms** | 392.1 ms | **1.23×** |
-| **q6_zone_revenue** | 12 | 41,169,300 | **149.7 ms** | 310.9 ms | **2.08×** |
-| **q7_wide** | 1 | 3,539,142 | **51.7 ms** | 88.9 ms | **1.72×** |
-| q8_selective | 24 | 470,349 | 280.0 ms | 203.6 ms | 0.73× |
-| **total** | | | **1503.8 ms** | **1513.9 ms** | **1.01×** |
+| q1_scan_count | 24 | 77,929,134 | 75.6 ms | 122.9 ms | 1.63× |
+| q2_month_range | 3 | 10,820,685 | 21.3 ms | 36.5 ms | 1.72× |
+| q3_payment_sum | 24 | 11,944,903 | 101.3 ms | 153.1 ms | 1.51× |
+| q4_tip_ratio | 24 | 6,532,607 | 173.7 ms | 201.3 ms | 1.16× |
+| q5_top_zones | 24 | 77,929,134 | 208.3 ms | 401.9 ms | 1.93× |
+| q6_zone_revenue | 12 | 41,169,300 | 95.4 ms | 309.6 ms | 3.24× |
+| q7_wide | 1 | 3,539,142 | 50.9 ms | 86.8 ms | 1.70× |
+| q8_selective | 24 | 470,349 | 175.4 ms | 202.1 ms | 1.15× |
+| **total** | | | **901.9 ms** | **1514.1 ms** | **1.68×** |
 
 All eight answers agree in both legs, to exact equality on every count and to
 within 1e-9 relative on every sum. Every cell came in at a p90/p50 spread of
-1.12× or tighter.
+1.06× or tighter.
 
-**The two stacks are level: 1.06× on one thread, 1.01× on ten.** That is close
-enough that the totals should be read as a tie rather than a win — a few percent
-is within what a different machine or a different month of data would move.
+**iceberg.mojo is ahead on every query in both legs — 1.34× on one thread and
+1.68× on ten.** Three changes across iceberg-mojo 0.7.0–0.7.2 got it there, and
+they are worth separating because they act on different things:
 
-What is not a tie is the spread underneath. iceberg.mojo is **2.0×–2.3× faster
-on the two partition-filtered queries** (q2, q6) and **1.5×–1.7× on the
-single-file wide scan** (q7), and **0.63×–0.75× on q1 and q8**. Those are
-different queries with different bottlenecks, and averaging them into one number
-hides more than it shows.
+- **A predicate the partition already guarantees now costs nothing.** The
+  residual evaluator reduces a boundary-aligned range to `true`, so the filter
+  column is neither read nor tested per row — q2 and q6, at 2.9× and 3.0×.
+- **The residual that remains is evaluated a vector at a time** rather than a
+  row at a time, which is most of q3, q4 and q8.
+- **A scan fetches only the column chunks its projection reaches.** Four
+  columns of nineteen is 13 MiB of a 60 MiB file, and reading the other 47 MiB
+  cost more than decompressing the 13.
 
-**Where it wins:** a predicate on the partition column reduces to nothing.
-Iceberg's residual evaluator proves the partition value already satisfies the
-filter, so no filter column is read and no per-row check runs — q2 scans three
-files in 61.8 ms where PyIceberg takes 126.5 ms. q7 wins for an unrelated
-reason: it touches one file, and the scan spends its whole worker budget on the
-row groups inside it rather than leaving nine cores idle.
-
-**Where it loses, the cost is Parquet decode, not Iceberg.** Profiling the scan
-by stage puts 155 ms of q1's 446 ms and 548 ms of q8's 929 ms in the decoder;
-the Iceberg layer above it — cast, residual, filter, Arrow assembly — is 51 to
-119 ms per query. q8 is the sharpest case: it decodes four columns over 79.5M
-rows to return 470,349, and its predicate is on an unsorted column, so page
-statistics cannot skip the work. That is
-[parquet.mojo](https://github.com/magmalake/parquet.mojo)'s half of the stack
-and it is where the remaining difference lives.
-
-Whole-suite scaling from one thread to ten is 2.7× for iceberg.mojo and 2.8× for
-pyarrow, both well short of 10 and consistent with the bend sitting at the four
-performance cores rather than the ten logical ones.
+**The threaded leg gains more than the single one, and that is the projection
+change.** Removing I/O parallelises better than removing CPU did: iceberg.mojo
+scales 3.5× from one thread to ten where pyarrow scales 2.8×. Both fall well
+short of 10 and both bend at the four performance cores, but the gap widens
+with workers rather than closing.
 
 ## PostgreSQL
 
@@ -467,11 +478,33 @@ in order to pass its own gate.
 
 ### Results
 
-**Not measured yet.** The implementation is correct — `scripts/compare.py`
-exits zero on all eight queries in both legs and in both index states — but
-timings taken on a machine that is doing anything else are not worth quoting,
-and this table will be filled in from a gated-quiet run of
-`scripts/bench-postgres.sh` in both legs and both index states.
+Both index states, because the choice is part of the result.
+
+| | unindexed | indexed | PyIceberg | vs PyIceberg |
+|---|---:|---:|---:|---:|
+| one thread | 40085.4 ms | **39523.8 ms** | 4247.5 ms | 0.11× |
+| 9 workers + leader | 21406.8 ms | **20724.7 ms** | 1514.1 ms | 0.07× |
+
+All eight answers agree in every combination.
+
+**The indexes bought nothing: 1.4% on one thread and 3.2% on ten, both inside
+the run-to-run spread, for 1053 MB on top of a 12.26 GiB heap.** That is not a
+failure of the index; it is what this suite asks for. Seven of the eight
+queries are full scans, where no index can help, and q8 — the one selective
+query — returns 470,349 rows of 79,478,796. At 0.6% of a table this size a
+bitmap heap scan is not meaningfully better than reading the heap, and on one
+run it came out worse. An index earns its keep at a selectivity this workload
+never asks for.
+
+**PostgreSQL is 9–14× behind the columnar engines**, which is the honest result
+for a row store asked to scan 79.5 million rows and touch two columns of
+nineteen. It is here to show what a table format buys, not to lose a race it
+was never entered in.
+
+**q7 is the exception and should be discounted**, for the reason given above:
+`count(*)` over one month never deforms a tuple, so PostgreSQL does strictly
+less work than an engine decoding nineteen columns. It is the most misleading
+number in this file.
 
 ### Running it
 
