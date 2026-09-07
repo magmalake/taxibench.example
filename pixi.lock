@@ -94,7 +94,7 @@ environments:
       - conda_source: brotli-mojo[ea49429a] @ git+https://github.com/magmalake/brotli.mojo?rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: brotli-shim[444ba167] @ git+https://github.com/magmalake/brotli.mojo?subdirectory=shim&rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: hashes-mojo[018a9881] @ git+https://github.com/magmalake/hashes.mojo?rev=6d56cd46c56273051f166d33f50fdf194a8dcd3e#6d56cd46c56273051f166d33f50fdf194a8dcd3e
-      - conda_source: iceberg-mojo[de72becc] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+      - conda_source: iceberg-mojo[baf58fc8] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
       - conda_source: lz4-mojo[f58341c2] @ git+https://github.com/magmalake/lz4.mojo?rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: lz4-shim[cf05b52e] @ git+https://github.com/magmalake/lz4.mojo?subdirectory=shim&rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: objectstore-mojo[4099be21] @ git+https://github.com/magmalake/objectstore.mojo?rev=31e7f6a38f31891eba9de14a24848e7ccf7096be#31e7f6a38f31891eba9de14a24848e7ccf7096be
@@ -180,7 +180,7 @@ environments:
       - conda_source: brotli-mojo[1c9826a2] @ git+https://github.com/magmalake/brotli.mojo?rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: brotli-shim[cda8b7ff] @ git+https://github.com/magmalake/brotli.mojo?subdirectory=shim&rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: hashes-mojo[8d00a532] @ git+https://github.com/magmalake/hashes.mojo?rev=6d56cd46c56273051f166d33f50fdf194a8dcd3e#6d56cd46c56273051f166d33f50fdf194a8dcd3e
-      - conda_source: iceberg-mojo[6c997ee4] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+      - conda_source: iceberg-mojo[04484f7f] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
       - conda_source: lz4-mojo[5337d7aa] @ git+https://github.com/magmalake/lz4.mojo?rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: lz4-shim[58d13c48] @ git+https://github.com/magmalake/lz4.mojo?subdirectory=shim&rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: objectstore-mojo[0b172a73] @ git+https://github.com/magmalake/objectstore.mojo?rev=31e7f6a38f31891eba9de14a24848e7ccf7096be#31e7f6a38f31891eba9de14a24848e7ccf7096be
@@ -258,7 +258,7 @@ environments:
       - conda_source: brotli-mojo[625b2775] @ git+https://github.com/magmalake/brotli.mojo?rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: brotli-shim[bfc0f55b] @ git+https://github.com/magmalake/brotli.mojo?subdirectory=shim&rev=bddf7c6811e756a4924fb13c7e9c14041644429a#bddf7c6811e756a4924fb13c7e9c14041644429a
       - conda_source: hashes-mojo[497db539] @ git+https://github.com/magmalake/hashes.mojo?rev=6d56cd46c56273051f166d33f50fdf194a8dcd3e#6d56cd46c56273051f166d33f50fdf194a8dcd3e
-      - conda_source: iceberg-mojo[ca8c074b] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+      - conda_source: iceberg-mojo[b734f594] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
       - conda_source: lz4-mojo[9482a19d] @ git+https://github.com/magmalake/lz4.mojo?rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: lz4-shim[73529234] @ git+https://github.com/magmalake/lz4.mojo?subdirectory=shim&rev=36ec6c5ca1cef06c970db67710e072fd64849be7#36ec6c5ca1cef06c970db67710e072fd64849be7
       - conda_source: objectstore-mojo[8ae9b1b4] @ git+https://github.com/magmalake/objectstore.mojo?rev=31e7f6a38f31891eba9de14a24848e7ccf7096be#31e7f6a38f31891eba9de14a24848e7ccf7096be
@@ -4003,7 +4003,7 @@ packages:
   - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2026c-h151e31d_0.conda
   - conda: https://conda.modular.com/max-nightly/linux-aarch64/mojo-compiler-1.0.0-release.conda
   - conda: https://conda.modular.com/max-nightly/noarch/mojo-python-1.0.0-release.conda
-- conda_source: iceberg-mojo[6c997ee4] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+- conda_source: iceberg-mojo[04484f7f] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
   version: 0.6.7
   build: he8cfe8b_0
   subdir: linux-aarch64
@@ -4142,7 +4142,7 @@ packages:
   - conda_source: thrift-mojo[ac714cb8] @ git+https://github.com/magmalake/thrift.mojo?rev=f4c3bdddd0c06bbad0c49c2b05c7afc30e7aa67a#f4c3bdddd0c06bbad0c49c2b05c7afc30e7aa67a
   - conda_source: zstd-mojo[c8d766e7] @ git+https://github.com/magmalake/zstd.mojo?rev=2088700111339559978ea592c56eb55e75757346#2088700111339559978ea592c56eb55e75757346
   - conda_source: zstd-shim[90e58adc] @ git+https://github.com/magmalake/zstd.mojo?subdirectory=shim&rev=2088700111339559978ea592c56eb55e75757346#2088700111339559978ea592c56eb55e75757346
-- conda_source: iceberg-mojo[ca8c074b] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+- conda_source: iceberg-mojo[b734f594] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
   version: 0.6.7
   build: h60d57d3_0
   subdir: osx-arm64
@@ -4268,7 +4268,7 @@ packages:
   - conda_source: thrift-mojo[dc51e0df] @ git+https://github.com/magmalake/thrift.mojo?rev=f4c3bdddd0c06bbad0c49c2b05c7afc30e7aa67a#f4c3bdddd0c06bbad0c49c2b05c7afc30e7aa67a
   - conda_source: zstd-mojo[0d3996e3] @ git+https://github.com/magmalake/zstd.mojo?rev=2088700111339559978ea592c56eb55e75757346#2088700111339559978ea592c56eb55e75757346
   - conda_source: zstd-shim[fe5502e7] @ git+https://github.com/magmalake/zstd.mojo?subdirectory=shim&rev=2088700111339559978ea592c56eb55e75757346#2088700111339559978ea592c56eb55e75757346
-- conda_source: iceberg-mojo[de72becc] @ git+https://github.com/magmalake/iceberg.mojo?rev=d710e81332440ce6e73ece19108e5d1f696bdfe3#d710e81332440ce6e73ece19108e5d1f696bdfe3
+- conda_source: iceberg-mojo[baf58fc8] @ git+https://github.com/magmalake/iceberg.mojo?rev=6c916ccb76caa0497df364a4a4c9ae7307eac93a#6c916ccb76caa0497df364a4a4c9ae7307eac93a
   version: 0.6.7
   build: hb0f4dca_0
   subdir: linux-64
