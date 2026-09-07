@@ -35,6 +35,18 @@ def load(path: str) -> dict[str, dict]:
     return records
 
 
+# What each engine calls itself, shortened to fit a column heading.
+ENGINE_LABELS = {"iceberg.mojo": "mojo", "pyiceberg": "pyice", "lance": "lance"}
+
+
+def engine_label(records: dict[str, dict]) -> str:
+    """The engine that produced these records, as a heading."""
+    for record in records.values():
+        engine = record.get("engine", "")
+        return ENGINE_LABELS.get(engine, engine[:5])
+    return "?"
+
+
 def compare_values(name: str, a, b, path: str = "") -> list[str]:
     """Structural comparison; returns a list of human-readable differences."""
     where = f"{name}{path}"
@@ -83,10 +95,14 @@ def main() -> int:
     for name in only_python:
         problems.append(f"{name}: only in {args.python}")
 
+    # Which engine sits in which column is whatever was named on the command
+    # line — iceberg.mojo against PyIceberg, or either of them against Lance —
+    # so the headings come from the records instead of being spelled in.
+    left, right = engine_label(mojo), engine_label(python)
     header = (
         f"{'query':<18}{'files':>6}{'rows':>12}"
-        f"{'mojo p50':>10}{'p90':>8}"
-        f"{'pyice p50':>11}{'p90':>8}{'ratio':>8}  answers"
+        f"{left + ' p50':>10}{'p90':>8}"
+        f"{right + ' p50':>11}{'p90':>8}{'ratio':>8}  answers"
     )
     if args.label:
         print(f"({args.label})")

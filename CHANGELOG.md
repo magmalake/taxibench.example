@@ -11,7 +11,30 @@ the numbers.
 
 ## [Unreleased]
 
+### Added
+- **A third engine: Lance 11.0.0.** `loader/convert_lance.py` transcodes the
+  Iceberg table's own 24 Parquet data files into a Lance dataset of 24
+  fragments, one per month — 79,478,796 rows, the same count by construction —
+  and `python/taxibench_lance/` answers the same eight queries over it, in the
+  JSON shape `scripts/compare.py` already reads. All eight answers agree with
+  PyIceberg, exactly on every count and within 1e-9 relative on every sum.
+  Timings are not taken yet: `scripts/bench-lance.sh` runs the Lance leg and
+  the PyIceberg leg in one session, both told the same thread count and each
+  query in its own process, and it wants a quiet machine.
+- **The README says what the third engine is not.** Lance does not read the
+  Iceberg table; it reads a converted copy, 4.79 GB against 1.37 GB of zstd
+  Parquet, built in 5.9 s. The benchmark runs warm, so that comparison hands
+  Lance the copy of the data that needs no decompression and then charges it
+  nothing for the size. Lance also has no partitioning, so the fragment-to-month
+  map the pruning needs is a sidecar the converter writes, where Iceberg
+  maintains the equivalent itself. Nothing is sorted or clustered on the way
+  through, and `TAXIBENCH_COMPRESS=zstd` builds the 2.55 GB variant for anyone
+  who wants to price the first of those.
+
 ### Changed
+- **`scripts/compare.py` takes its column headings from the records.** Either
+  side can now be any of three engines, and a heading reading `mojo p50` over
+  Lance numbers would be wrong. Nothing about the gate itself moves.
 - **Re-measured against iceberg-mojo 0.7.1.** The two stacks are now level —
   1.06x on one thread and 1.01x on ten, from 0.70x and 0.86x at 0.6.7 — so the
   README no longer organises itself around a single explanation for the split.

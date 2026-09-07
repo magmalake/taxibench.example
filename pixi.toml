@@ -19,6 +19,13 @@ build-probe = { cmd = "mkdir -p build && mojo build src/probe.mojo -I src -o bui
 bench = { cmd = "bash scripts/bench.sh" }
 # Download the TLC months and have PyIceberg build the table. Needs `uv`.
 load = { cmd = "bash scripts/load.sh" }
+# Transcode the Iceberg table into a Lance dataset: a second copy of the same
+# rows in a different format, which is what the third engine reads. Needs `uv`.
+# See "The Lance leg" in the README for what that copy costs and what it means.
+convert-lance = { cmd = "bash scripts/convert-lance.sh" }
+# The suite over the Lance dataset and over the Iceberg table beside it, in one
+# session, then a diff of the answers. See scripts/bench-lance.sh.
+bench-lance = { cmd = "bash scripts/bench-lance.sh" }
 # The answers-must-match gate on its own, over whatever results are in build/.
 verify = { cmd = "python3 scripts/compare.py build/results-mojo.jsonl build/results-python.jsonl" }
 fmt = { cmd = "mojo format src" }

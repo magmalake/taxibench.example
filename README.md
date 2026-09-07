@@ -11,6 +11,17 @@ This is a measurement, not a demo. Both implementations must agree on every
 answer before any timing is worth reading, so `scripts/compare.py` diffs the
 results and exits non-zero if they disagree.
 
+There is now a third engine, and it changes what this repository is comparing.
+**Lance does not read the Iceberg table.** It reads a Lance dataset: a second
+copy of the same 79,478,796 rows, in a different file format, 3.5× the size,
+produced by a conversion step neither of the other two pays for. Two
+implementations of one table format reading one physical table is an
+apples-to-apples comparison; adding Lance turns this into the same analytical
+workload across storage engines, which is a looser and more interesting claim.
+A Lance number and an Iceberg number here are not measuring the same thing end
+to end. [The Lance leg](#the-lance-leg) is where that is spelled out, and the
+answers are still held to the same gate.
+
 ## What is measured
 
 79,478,796 NYC yellow-taxi trips — every month of 2023 and 2024 from the
@@ -42,6 +53,118 @@ table format's job. Each implementation brings its own: `src/taxibench/agg.mojo`
 folds Arrow buffers directly, and `python/taxibench/queries.py` uses
 `pyarrow.compute`. Both fold batch by batch, in their own idiom rather than a
 transliteration of the other's.
+
+## The Lance leg
+
+[Lance](https://lancedb.github.io/lance/) is a columnar file format with its own
+reader, not another way of reading Parquet, so the third engine needs its own
+copy of the data. `loader/convert_lance.py` transcodes the Iceberg table's 24
+Parquet data files into a Lance dataset of 24 fragments, one per month —
+79,478,796 rows, the same count, and by construction rather than by luck.
+
+**The source is the table's data files, not the raw TLC Parquet.** The loader
+does real work on the way in: it casts the two schemas TLC publishes onto one,
+and drops the ~1,150 rows whose pickup timestamp falls outside the month their
+file is named for. Reproducing that would be a second implementation of it, and
+a second implementation off by one row would make every answer differ for a
+reason that has nothing to do with Lance. Reading what PyIceberg already wrote
+inherits the normalisation instead of repeating it.
+
+`python/taxibench_lance/` runs the suite. It imports the folds from
+`python/taxibench/queries.py` — the PyIceberg leg's own aggregation code, which
+needs nothing but pyarrow — so between the two Python legs the only thing that
+differs is how the Arrow batches are produced. Both are on pyarrow 25.0.1.
+
+### What a Lance number does not measure
+
+**It is a separate copy, and it is much bigger.** Nothing here is free:
+
+| | on disk | vs Iceberg | to build |
+|---|---:|---:|---:|
+| Iceberg table, zstd Parquet | 1.37 GB | — | (the load) |
+| Lance dataset, as written by default | **4.79 GB** | 3.5× | 5.9 s |
+| Lance dataset, `--compress zstd` | 2.55 GB | 1.9× | 8.6 s |
+
+The conversion is 5.9 s of wall clock on ten cores — 6.8 s including the flush
+to disk — with both source and destination on local NVMe and the source already
+in page cache. It is not a slow step. It is a step the other two engines do not
+have, and the queries are timed after it, so it appears in no table below.
+
+**Lance is uncompressed by default, and this benchmark runs warm.** The stable
+format applies structural encodings — bit-packing, dictionaries, run-length —
+but no general-purpose block compressor unless a field asks for one, which is
+why the same rows take 3.5× the space. On a warm page cache, 3.5× the bytes is
+close to free and skipping zstd is not: the benchmark hands Lance the copy of
+the data that needs no decompression and then charges it nothing for the size.
+That is the single biggest way this comparison flatters Lance. Cold cache,
+network storage, or a machine whose RAM will not hold 4.79 GB would all read
+differently, and `TAXIBENCH_COMPRESS=zstd scripts/convert-lance.sh` builds the
+1.9× dataset if you want to price it.
+
+**The pruning is handed to Lance; Iceberg does it for itself.** A Lance dataset
+is a flat list of fragments and the format records nothing about what is in
+one — there is no partition spec, no partition value on a data file, and no
+manifest summary to test a predicate against. So the converter writes
+`fragments.json` beside the dataset, recording each fragment's month and its
+pickup-timestamp bounds, and the runner prunes against that. It is what gives
+q2, q6 and q7 their 3, 12 and 1 fragments, and it is also how a fragment the
+range covers entirely is read with no filter at all, which is exactly the
+reduction Iceberg's residual evaluator performs. Iceberg maintains that
+metadata as a property of the table; here it is a sidecar written by hand to
+make the two sides comparable. The idiomatic Lance answer is a scalar index on
+`tpep_pickup_datetime`, which is a different mechanism with its own build cost
+and which prunes row ranges rather than files — worth measuring, but it would
+end the file-count comparison rather than fit into it.
+
+**The read batch had to be set.** Lance reads 8,192 rows at a time by default,
+which a selective filter thins to about 2,000 by the time the fold sees them,
+where PyIceberg hands the same fold batches of 17,000 to 129,000. With the same
+aggregation code on both legs, that difference is measured as Lance being slow
+when what is slow is a Python loop running eight times as often — on q5, 9,712
+fold calls against 617. The Lance leg therefore reads in batches of 131,072,
+which puts its granularity where PyIceberg's already is and is where the curve
+flattens. `--batch-size` exposes it, and the batch stays bounded either way.
+
+**Nothing is sorted or clustered on the way through.** This is the leg-up a
+conversion step usually gets, and it is not taken: the row order inside each
+fragment is the row order of the Iceberg data file, which is the row order of
+the TLC file. q8's predicate is on `PULocationID`, which is unsorted on both
+sides, so neither format's statistics can skip much of it. Sorting by pickup
+zone would make q8 collapse on the Lance side and would be worth reporting as
+its own result — but not in a table next to a table that was not sorted.
+
+### Where Lance is the better tool, and where it is not
+
+Lance is built for random access: fetching rows by id, reading a single column
+without touching the rest of the file, adding a column without rewriting the
+data, and vector search over embeddings. Those are the things Parquet is bad
+at, and none of them is in this suite. What is in this suite — full scans,
+predicates over a fixed set of columns, and grouped aggregation — is what
+Parquet was designed for and what every part of the Iceberg stack is tuned
+around. Whatever the numbers say, they are numbers from Parquet's home ground,
+and a reader deciding between the two formats should weigh a scan benchmark
+accordingly.
+
+There is a `lancedb-mojo` tin on [mojoshelf](https://mojoshelf.org), an FFI
+binding to a Rust cdylib, but it binds LanceDB's vector-store surface — open a
+table, add and delete rows, build an index, count, search by vector. There is
+no projected scan returning Arrow batches, so it cannot express these eight
+queries; the analytical path would need Lance's dataset scanner rather than the
+LanceDB table API. This leg is Python for that reason.
+
+There is no third container image either. The image-size table below is about
+how tightly each Iceberg stack packages; a Lance image would be measuring a
+different question.
+
+### Lance results
+
+**Not yet measured.** The implementation is in place and it passes the answer
+gate — all eight answers agree with PyIceberg, exactly on every count and
+within 1e-9 relative on every sum, and the fragment counts line up with the
+file counts at 24, 3, 24, 24, 24, 12, 1, 24. The timings wait on a quiet
+machine, which is the same rule the two tables below were taken under.
+`scripts/bench-lance.sh` produces them: the Lance leg and the PyIceberg leg in
+one session, both told the same thread count, each query in its own process.
 
 ## Results
 
@@ -164,7 +287,16 @@ scripts/load.sh                  # download ~1.2 GB of TLC Parquet, build the ta
 pixi run build                   # the Mojo binary
 scripts/bench.sh                 # both legs, both implementations, then the answer diff
 TAXIBENCH_DOCKER=1 scripts/bench.sh   # the same, through the two images
+
+scripts/convert-lance.sh         # transcode the table into build/lance (4.79 GB)
+scripts/bench-lance.sh           # Lance against PyIceberg, then the answer diff
 ```
+
+Lance installs into its own virtual environment, `build/venv-lance`. The
+PyIceberg environment is what one of the two engines under test is measured
+through, and its pyarrow is pinned at 25.0.1; letting a resolver move that while
+installing something unrelated would silently re-time the benchmark. The two end
+up on the same pyarrow either way, which is what the comparison needs.
 
 `TAXIBENCH_MONTHS=2 scripts/load.sh` builds a much smaller table for iterating.
 `pixi run build-probe` builds `src/probe.mojo`, which runs one scan with any
@@ -178,6 +310,10 @@ so a table generated at `/x/build/warehouse` is only readable at
 
 ## Caveats
 
+- **The Lance leg reads a different table.** Not a different reader over the
+  same files: a converted copy, in another format, 3.5× the size, with the
+  pruning metadata supplied by hand. [The Lance leg](#the-lance-leg) is the
+  section, not this bullet, because it is not a footnote to the numbers.
 - **One machine, one shape of data.** Twenty-four files of about 3 million rows
   each, all local, all zstd. Object storage, many small files, or a table with
   row-level deletes would each move these numbers.
@@ -189,8 +325,10 @@ so a table generated at `/x/build/warehouse` is only readable at
   measured for size and verified to produce identical answers, but the numbers
   above come from the host binaries.
 - **`plan_ms` is reported beside the total, not subtracted from it.** Planning
-  runs again inside the read on both sides; the number is there to show it is
-  small (0.3–3 ms) rather than to be added or removed.
+  runs again inside the read on both Iceberg sides; the number is there to show
+  it is small (0.3–3 ms) rather than to be added or removed. The Lance leg is
+  the exception: its scanner is handed the fragments the plan chose and does
+  not plan again, so its `plan_ms` is work that happens once.
 - The TLC files are not schema-consistent. The 2023 months type the id columns
   as int64/double and spell the airport fee `airport_fee`; 2024 narrows them and
   spells it `Airport_fee`. `loader/load_table.py` casts both onto one schema.
