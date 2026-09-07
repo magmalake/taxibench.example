@@ -30,6 +30,40 @@ the numbers.
   maintains the equivalent itself. Nothing is sorted or clustered on the way
   through, and `TAXIBENCH_COMPRESS=zstd` builds the 2.55 GB variant for anyone
   who wants to price the first of those.
+- **A PostgreSQL implementation of the suite.** The same eight questions in SQL
+  against PostgreSQL 18.4, over its own copy of the same 79,478,796 rows —
+  `loader/load_postgres.py`, `python/taxibench/postgres.py`,
+  `python/taxibench/postgres_queries.py`, and `scripts/pg-server.sh`,
+  `scripts/load-postgres.sh`, `scripts/bench-postgres.sh` and
+  `scripts/pg-indexes.sh` to raise a throwaway cluster under `build/` on a free
+  port, load it, run it and tear it down. `scripts/compare.py` diffs its
+  answers against PyIceberg's unmodified and all eight agree: every count
+  exactly, every sum to within 1.8e-11 relative against a gate of 1e-9. The
+  timings are not in yet; they need a quiet machine and the README says so
+  rather than quoting numbers taken on a busy one.
+- **The framing that has to go with it.** PostgreSQL is a row store reading its
+  own heap and is not reading the Iceberg table at all, so the README sets out
+  what is not comparable rather than quoting a total: q7 is not a wide decode
+  in a row store and `count(*)` does not even deform the tuple, so PostgreSQL
+  does less work there than either Iceberg reader; q2 and q6 prune to the same
+  partitions but still evaluate the redundant predicate per row where Iceberg's
+  residual evaluator drops it; the fold happens inside the server. The second
+  copy costs **12.26 GiB of heap against 1.28 GiB of Parquet — 166 bytes per
+  row against 17.3** — and about 80 s to load with the WAL turned off, which is
+  stated as flattering the load rather than left implicit.
+- **Both index states, because the choice changes q8 and does nothing for q1.**
+  One btree per equality predicate in the suite and nothing else, 1.03 GiB for
+  the pair thanks to btree deduplication over 265 zones and 5 payment types.
+  q8 becomes 24 bitmap heap scans; q3 becomes 16 index scans and 8 bitmap heap
+  scans, because the planner decides per partition and does not decide the same
+  way twice; q1, q4, q5 and q7 have no equality predicate and cannot be touched.
+- **The PostgreSQL table is range-partitioned into the same 24 months** the
+  Iceberg table is partitioned into, so `files` counts the same thing on both
+  sides — read out of `EXPLAIN`, not asserted — and q2, q6 and q7 measure
+  pruning rather than measuring the fact that nobody partitioned the table.
+- **A `postgres` pixi environment**, separate from the default one so the Mojo
+  toolchain and PostgreSQL never have to solve against each other. It carries
+  the server binaries and nothing else, and the scripts find it themselves.
 
 ### Changed
 - **`scripts/compare.py` takes its column headings from the records.** Either
