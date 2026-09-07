@@ -121,6 +121,40 @@ in both legs came in at 1.09× or tighter. An earlier contended run reported
 q5 single-thread at 2866 ms; quiet, it is 917 ms. That 3.1× is the measurement
 error you get from not checking, and it is why the spread is reported at all.
 
+### What the single-file gap was, and what closing it is worth
+
+The tables above are iceberg-mojo **0.6.7**, which is what `pixi shelf add`
+installs today. The Q7 diagnosis turned out to be half right, and the half that
+was wrong is the more useful half.
+
+parquet.mojo **0.7.0 already parallelises inside a file** — it flattens
+*(row group, leaf)* pairs into one work list, which is the right shape. The
+missing piece was one level up: `iceberg.mojo` spent its whole worker budget on
+the file axis and never told the reader it could use threads, so a one-file scan
+left every core but one idle. Splitting the budget — `min(w, n)` files at once,
+`w // min(w, n)` threads inside each, so only the slack the file axis cannot use
+goes inward — gives this, measured the same way on the same machine:
+
+| query | files | 0.6.7 | with the split | |
+|---|---:|---:|---:|---|
+| **q7_wide** | 1 | 177.3 ms | **64.6 ms** | **2.74×** |
+| q2_month_range | 3 | 76.5 ms | 68.5 ms | 1.12× |
+| q1_scan_count | 24 | 200.4 ms | 200.3 ms | flat |
+
+Q7 goes from **0.46× to 1.36×** against PyIceberg, and the suite total from
+1985.6 ms to 1839.4 ms — all answers still agreeing. The 24-file queries are
+unchanged, which is the point: at `n >= w` the split is byte-for-byte the old
+path, so this is not the even halving between axes that costs more than it wins.
+
+The q7 worker ladder is **181.7 / 113.4 / 90.3 / 78.4 / 71.7 / 67.8 / 64.4 ms**
+at 1/2/3/4/6/8/10 workers. The bend is at four — the performance-core count, not
+the ten logical ones — and a fitted serial fraction of 25–28% caps this at about
+3.5–4×. That quarter is iceberg's own per-batch casting, residual evaluation,
+delete application and Arrow assembly, all still on the calling thread. More
+workers will not move it; that stage is where the next factor is.
+
+This is measured from an unmerged branch and is not in any published version.
+
 ## Image size
 
 Both images are built as carefully as each other: the Python one installs
