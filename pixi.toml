@@ -11,6 +11,9 @@ preview = ["pixi-build"]
 [tasks]
 # The benchmark binary. Everything else here is a wrapper around it.
 build = { cmd = "mkdir -p build && mojo build src/main.mojo -I src -o build/taxibench" }
+# The diagnostic: one scan, any projection, timed. Not part of the suite — it
+# exists to isolate a cost rather than to report a benchmark. See src/probe.mojo.
+build-probe = { cmd = "mkdir -p build && mojo build src/probe.mojo -I src -o build/taxibench-probe" }
 # The suite against the local warehouse, both implementations, then a diff of
 # the answers. See scripts/bench.sh.
 bench = { cmd = "bash scripts/bench.sh" }
