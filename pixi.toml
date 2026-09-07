@@ -29,4 +29,4 @@ mojo = "==1.0.0"
 # source dependency, pinned at the revision mojoshelf published. Its own
 # dependencies — parquet, avro, thrift, zstd, lz4, brotli, objectstore and the
 # rest — come along with it.
-iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "c028c5c340221bd8819c4d3de2ed14f98714312c" }
+iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "ca642fcabdb6647b70eb0240a906e5ee72fd23a4" }
