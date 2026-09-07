@@ -2,10 +2,18 @@
 
 > Part of [**magmalake**](https://magmalake.org) — data lake building blocks in Mojo.
 
-The same eight queries over the same Apache Iceberg table, run twice: once
-through [iceberg-mojo](https://mojoshelf.org/tins/iceberg-mojo) and once through
-PyIceberg 0.11.1, and packaged as two container images so the runtime cost of
-each stack is a number rather than an impression.
+This repo exists for 3 reasons:
+
+- further validate the [iceberg-mojo](https://mojoshelf.org/tins/iceberg-mojo)o implementation
+- compare the performance with the python implementation, PyIceberg 0.11.1
+- further evaluate against much more different approaches like Postgres and LanceDB
+
+The same eight queries are run over the data using representations
+native to the various implementations. This is a measurement, not a demo. Every implementation must agree on every
+answer before any timing is worth reading, so `scripts/compare.py` diffs the
+results and exits non-zero if they disagree.
+
+We start with Apache Iceberg table for the two Iceberg implementations.
 
 A third implementation answers the same eight questions from **PostgreSQL**.
 It is not a third reader of the Iceberg table: it holds its own copy of the
@@ -15,12 +23,8 @@ is the closest thing this repository has to a measurement of what a table
 format is worth. Read [PostgreSQL](#postgresql) before reading its numbers as
 a race.
 
-This is a measurement, not a demo. Every implementation must agree on every
-answer before any timing is worth reading, so `scripts/compare.py` diffs the
-results and exits non-zero if they disagree.
 
-There is now a third engine, and it changes what this repository is comparing.
-**Lance does not read the Iceberg table.** It reads a Lance dataset: a second
+The LanceDB approach reads a Lance dataset: a second
 copy of the same 79,478,796 rows, in a different file format, 3.5× the size,
 produced by a conversion step neither of the other two pays for. Two
 implementations of one table format reading one physical table is an
