@@ -42,7 +42,7 @@ mojo = "==1.0.0"
 # source dependency, pinned at the revision mojoshelf published. Its own
 # dependencies — parquet, avro, thrift, zstd, lz4, brotli, objectstore and the
 # rest — come along with it.
-iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "a3b189158e1b2665c79cca6c4376324c82c5af10" }
+iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "3c54d66d3a41db7b55e8dee6396a51965d71953e" }
 
 # The PostgreSQL leg needs a server, and only a server: initdb, pg_ctl,
 # pg_isready and psql, which scripts/pg-server.sh uses to raise a throwaway
