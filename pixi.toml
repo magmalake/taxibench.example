@@ -26,6 +26,10 @@ convert-lance = { cmd = "bash scripts/convert-lance.sh" }
 # The suite over the Lance dataset and over the Iceberg table beside it, in one
 # session, then a diff of the answers. See scripts/bench-lance.sh.
 bench-lance = { cmd = "bash scripts/bench-lance.sh" }
+# The suite through Daft twice: over Daft's own Iceberg reader and over
+# iceberg.mojo's, with the engine held fixed. Needs iceberg.mojo's scan library
+# and the pyarrow-flight.example checkout; see scripts/bench-daft.sh.
+bench-daft = { cmd = "bash scripts/bench-daft.sh" }
 # The PostgreSQL copy of the same rows: a throwaway cluster under build/ on a
 # free port, then the same 79,478,796 trips through a binary COPY. Needs the
 # TLC Parquet `load` downloads, and the `postgres` environment below.
