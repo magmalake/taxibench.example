@@ -128,6 +128,86 @@ scales 3.5× from one thread to ten where pyarrow scales 2.8×. Both fall well
 short of 10 and both bend at the four performance cores, but the gap widens
 with workers rather than closing.
 
+## One engine, two readers
+
+The comparison above changes two things at once: the reader *and* the
+aggregation above it. `scripts/bench-daft.sh` holds an engine fixed instead.
+[Daft](https://daft.ai) does the scheduling, the predicates and the group-bys
+in both legs, and the only difference is where its rows come from — its own
+Iceberg reader, or `iceberg.mojo` handing Daft Arrow buffers over the C Data
+Interface through the
+[`daft_flight`](https://github.com/magmalake/pyarrow-flight.example) connector.
+The eight queries are the same eight, spelled as DataFrame expressions in
+`python/taxibench/daft_queries.py`.
+
+This is the question a user with a pipeline actually has, which the other table
+cannot answer: *if I change nothing but the scan, what happens?*
+
+Same machine and discipline as above — Apple M4, warm cache, p50 of 5 runs
+after a discarded warm-up, each query in its own process. Both legs run Daft's
+default native runner over all cores; neither is told a thread count, because
+the engine that would obey one is the same engine.
+
+| query | rows out | Daft + iceberg.mojo | Daft native | ratio |
+|---|---:|---:|---:|---:|
+| q1_scan_count | 77,929,134 | 150.7 ms | 115.0 ms | 0.76× |
+| q2_month_range | 10,820,685 | 58.8 ms | 48.2 ms | 0.82× |
+| q3_payment_sum | 11,944,903 | 126.2 ms | 188.7 ms | **1.50×** |
+| q4_tip_ratio | 6,532,607 | 185.9 ms | 182.6 ms | 0.98× |
+| q5_top_zones | 77,929,134 | 188.7 ms | 157.8 ms | 0.84× |
+| q6_zone_revenue | 41,169,300 | 163.8 ms | 148.4 ms | 0.91× |
+| q7_wide | 3,539,142 | 188.0 ms | 67.0 ms | 0.36× |
+| q8_selective | 470,349 | 191.4 ms | 177.6 ms | 0.93× |
+| **total** | | **1253.5 ms** | **1085.4 ms** | **0.87×** |
+
+All eight answers agree, by the same comparison `scripts/compare.py` applies to
+the other legs. **Daft's own reader is ahead overall, 1.15× on the suite**, and
+that is worth stating plainly next to the table above it: beating PyIceberg's
+scan by 1.68× is not the same as beating a mature multi-threaded Rust Parquet
+reader inside the engine that schedules it.
+
+### Where the difference is, and it is not the decoder
+
+q7 is the whole story. It reads one month — **one data file** — and a task is
+the unit of parallelism, so with the default 128 MB split target that query is
+a single task and runs on one core while Daft's reader spreads the same file
+across all of them. Splitting finer fixes it:
+
+| split target | splits | q7_wide | q1_scan_count |
+|---|---:|---:|---:|
+| 128 MB (default) | 24 | 188.0 ms | 150.2 ms |
+| 32 MB | 48 | 129.4 ms | 173.1 ms |
+| 16 MB | 87 | 85.8 ms | 216.1 ms |
+
+Finer splits are not free, and the cost is ours rather than Iceberg's: reading
+one data file as four splits takes 30.2 ms where reading it as one takes
+14.7 ms, sequentially and for the same rows. Every `ib_scan_split` re-opens the
+table metadata and re-plans to find the task at its offset — about 5 ms of
+fixed cost per task on this table — so the single-file query wants many tasks
+and the full-table scan wants few. **That fixed cost is the thing to remove**;
+a ticket that carried its own plan, or a plan cache shared across the tasks of
+one query, would let the granularity be chosen for parallelism alone.
+
+q3 is the one the Mojo side wins, and by enough to matter: a two-column
+predicate scan at 1.50×, which is the shape iceberg.mojo's residual evaluator
+and column-chunk fetching were built for.
+
+### Running it
+
+```sh
+pixi run bench-daft
+```
+
+It needs `iceberg.mojo`'s scan library (`pixi run carrow-scan-lib` there) and
+the `pyarrow-flight.example` checkout beside it, and builds its own venv —
+Daft is PyPI-only, and the native leg plans through PyIceberg. Both paths can
+be pointed elsewhere; `scripts/bench-daft.sh` names the variables.
+
+Daft prints `Could not convert filter to Iceberg expression, skipping pushdown`
+for the month-transform predicates in q2, q6 and q7. Its timings show it prunes
+those partitions anyway, so the warning is about one rewrite it declined and
+not about the pruning.
+
 ## Image size
 
 Both images are built as carefully as each other: the Python one installs

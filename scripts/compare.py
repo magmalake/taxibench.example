@@ -36,7 +36,14 @@ def load(path: str) -> dict[str, dict]:
 
 
 # What each engine calls itself, shortened to fit a column heading.
-ENGINE_LABELS = {"iceberg.mojo": "mojo", "pyiceberg": "pyice", "lance": "lance"}
+ENGINE_LABELS = {
+    "iceberg.mojo": "mojo",
+    "pyiceberg": "pyice",
+    "lance": "lance",
+    # The two Daft legs: one engine, two scan sources. See bench-daft.sh.
+    "daft-mojo": "mojo",
+    "daft-native": "daft",
+}
 
 
 def engine_label(records: dict[str, dict]) -> str:
