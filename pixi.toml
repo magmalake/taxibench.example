@@ -40,13 +40,17 @@ bench-postgres = { cmd = "bash scripts/bench-postgres.sh" }
 verify = { cmd = "python3 scripts/compare.py build/results-mojo.jsonl build/results-python.jsonl" }
 fmt = { cmd = "mojo format src" }
 
+# One toolchain: the pinned Mojo nightly every magmalake tin builds with. The
+# iceberg-mojo package below is a .mojoc, which loads only in the compiler
+# version that built it, so this pin moves with the tin's. `mojo` rather than
+# `mojo-compiler` because `fmt` needs `mojo format`.
 [dependencies]
-mojo = "==1.0.0"
+mojo = "==1.3.0.dev2026111805"
 # Added by `pixi shelf add iceberg-mojo`: the tin comes from GitHub as a pixi
-# source dependency, pinned at the revision mojoshelf published. Its own
+# source dependency, pinned at a revision built with the nightly above. Its own
 # dependencies — parquet, avro, thrift, zstd, lz4, brotli, objectstore and the
 # rest — come along with it.
-iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "3c54d66d3a41db7b55e8dee6396a51965d71953e" }
+iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "09d63e560dc92bc983471fea036e428ea451f404" }
 
 # The PostgreSQL leg needs a server, and only a server: initdb, pg_ctl,
 # pg_isready and psql, which scripts/pg-server.sh uses to raise a throwaway
