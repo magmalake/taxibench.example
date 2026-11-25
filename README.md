@@ -1,5 +1,7 @@
 # taxibench.example
 
+[![Mojo version](https://mojourney.dev/badge/magmalake/taxibench.example/mojo.svg)](https://mojourney.dev/repos/magmalake/taxibench.example)
+
 > Part of [**magmalake**](https://magmalake.org) — data lake building blocks in Mojo.
 
 This repo exists for three reasons:
