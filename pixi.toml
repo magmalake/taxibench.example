@@ -45,12 +45,12 @@ fmt = { cmd = "mojo format src" }
 # version that built it, so this pin moves with the tin's. `mojo` rather than
 # `mojo-compiler` because `fmt` needs `mojo format`.
 [dependencies]
-mojo = "==1.3.0.dev2026111805"
+mojo = "==1.3.0.dev2026112505"
 # Added by `pixi shelf add iceberg-mojo`: the tin comes from GitHub as a pixi
 # source dependency, pinned at a revision built with the nightly above. Its own
 # dependencies — parquet, avro, thrift, zstd, lz4, brotli, objectstore and the
 # rest — come along with it.
-iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "86753ab7f64e649561e91686f715587331c50664" }
+iceberg-mojo = { git = "https://github.com/magmalake/iceberg.mojo.git", rev = "67f7616f54a59fde5bd3819e4494635b7452203b" }
 
 # The PostgreSQL leg needs a server, and only a server: initdb, pg_ctl,
 # pg_isready and psql, which scripts/pg-server.sh uses to raise a throwaway
